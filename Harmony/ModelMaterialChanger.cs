@@ -30,6 +30,7 @@ public class OcbModelMaterialChanger : IModApi
             = new Dictionary<string, Color>();
         public Dictionary<string, float> floats
             = new Dictionary<string, float>();
+        public Shader shader = null;
     }
 
     class ZedConfig
@@ -55,27 +56,38 @@ public class OcbModelMaterialChanger : IModApi
             cfg = cfgs[id] = new ShaderConfig();
         foreach (XElement node in xml.Elements())
         {
-            if (!node.HasAttribute("name")) throw new
-                Exception("texture is missing name");
             if (!node.HasAttribute("value")) throw new
-                Exception("texture is missing value");
-            string name = node.Attribute("name").Value;
+                Exception($"{xml.Name} is missing value");
             string value = node.Attribute("value").Value;
-            if (node.Name == "texture")
+            if (node.Name == "shader")
             {
                 var path = DataLoader.ParseDataPathIdentifier(value);
                 AssetBundleManager.Instance.LoadAssetBundle(path.BundlePath);
-                var texture = cfg.textures[name] = AssetBundleManager.Instance
-                    .Get<Texture>(path.BundlePath, path.AssetName);
-                if (texture == null) Log.Warning("Could not load {0}", value);
+                var shader = cfg.shader = AssetBundleManager.Instance
+                    .Get<Shader>(path.BundlePath, path.AssetName);
+                if (shader == null) Log.Warning("Could not load {0}", value);
             }
-            else if (node.Name == "color")
+            else
             {
-                cfg.colors[name] = StringParsers.ParseColor(value);
-            }
-            else if (node.Name == "float")
-            {
-                cfg.floats[name] = float.Parse(value);
+                if (!node.HasAttribute("name")) throw new
+                    Exception($"{xml.Name} is missing name");
+                string name = node.Attribute("name").Value;
+                if (node.Name == "texture")
+                {
+                    var path = DataLoader.ParseDataPathIdentifier(value);
+                    AssetBundleManager.Instance.LoadAssetBundle(path.BundlePath);
+                    var texture = cfg.textures[name] = AssetBundleManager.Instance
+                        .Get<Texture>(path.BundlePath, path.AssetName);
+                    if (texture == null) Log.Warning("Could not load {0}", value);
+                }
+                else if (node.Name == "color")
+                {
+                    cfg.colors[name] = StringParsers.ParseColor(value);
+                }
+                else if (node.Name == "float")
+                {
+                    cfg.floats[name] = float.Parse(value);
+                }
             }
         }
     }
@@ -128,7 +140,6 @@ public class OcbModelMaterialChanger : IModApi
             if (!(ZedConfigs.TryGetValue(_ec.entityClassName, out ZedConfig zed))) return;
             SkinnedMeshRenderer[] renderers = __instance.GetComponentsInChildren<SkinnedMeshRenderer>();
             int max = 0; foreach (var r in renderers) max = Math.Max(max, r.materials.Length);
-            if (zed.debug == true) DebugTransform(__instance, _ec);
             foreach (var renderer in renderers)
             {
                 foreach (var material in renderer.materials)
@@ -145,6 +156,8 @@ public class OcbModelMaterialChanger : IModApi
                         ApplyMaterialConfig(material, cfg);
                 }
             }
+            // Call debug after changes are applied (e.g. new shader)
+            if (zed.debug == true) DebugTransform(__instance, _ec);
         }
 
     }
@@ -154,6 +167,7 @@ public class OcbModelMaterialChanger : IModApi
 
     private static void ApplyMaterialConfig(Material material, ShaderConfig cfg)
     {
+        if (cfg.shader != null) material.shader = cfg.shader;
         foreach (var texture in cfg.textures) material
             .SetTexture(texture.Key, texture.Value);
         foreach (var color in cfg.colors) material

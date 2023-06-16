@@ -21,6 +21,14 @@ configurations can be applied by shader or material name.
         <float name="_Irradiated" value="1"/>
       </shader>
     </entity_class>
+    <!-- example showing how to replace existing shader with another -->
+    <entity_class name="ZARLENE_RED_RAD" extends="zombieArleneRadiated" debug="false">
+      <shader name="Game/Character"><!-- or <material name="HD_Arlene"> -->
+        <!-- this loads an alternative shader that allows to set the irradiation color -->
+        <shader value="#@modfolder(OcbModelMaterialChanger):Resources/Shaders.unity3d?CharacterRMOE" />
+        <color name="_IrradiatedColor" value="1,0.2,0.1,1"/> <!-- red rads -->
+      </shader>
+    </entity_class>
   </append>
 </configs>
 ```
@@ -105,6 +113,10 @@ Simply [download here from GitHub][1] and put into your A20 Mods folder:
 - https://github.com/OCB7D2D/OcbModelMaterialChanger/archive/master.zip (master branch)
 
 ## Changelog
+
+### Version 0.1.1
+
+- Add alternative RMOE shader
 
 ### Version 0.1.0
 
